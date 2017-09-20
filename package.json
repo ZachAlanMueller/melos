@@ -1,5 +1,7 @@
 {
-  "name": "app",
+  "name": "Melos",
+  "main": "start.js",
+  "title": "Melos",
   "productName": "App",
   "version": "0.0.0",
   "description": "",
@@ -16,7 +18,8 @@
     "build": "electron-packager . --out=dist --asar --overwrite --all"
   },
   "dependencies": {
-    "electron-debug": "^1.0.0"
+    "electron-debug": "^1.0.0",
+    "nedb": "^1.8.0"
   },
   "devDependencies": {
     "devtron": "^1.1.0",
