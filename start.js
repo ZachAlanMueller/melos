@@ -6,6 +6,8 @@ const Menu = electron.Menu; //menu bar
 var Mousetrap = require('mousetrap'); //keybindings
 const fs = require("fs"); //filesystem
 var mm = require('musicmetadata'); //musicmetadata
+var Datastore = require('nedb')
+  , db = new Datastore({ filename: './db/songs', autoload: true });
 
 
 
@@ -114,7 +116,7 @@ function createMenuBar(){
 function loadFilesFromFolder(folderName){
 	var files = fs.readdirSync(folderName);
 	for(var i = 0; i < files.length; i++){
-		if(fs.lstatSync(folderName + "/" + files[i]).isFile()) { //@TODO also check if file has extension defined 
+		if(fs.lstatSync(folderName + "/" + files[i]).isFile()) {
 			var ext = files[i].substr(files[i].lastIndexOf('.') + 1);
 			if(ext == "m4a" || ext == "mp3" || ext == "spx" || ext == "wav"){
 				addSong(folderName + "/" + files[i]);
@@ -130,18 +132,43 @@ function addSong(filename){ //@TODO check for no metadata found
 	var parser = mm(fs.createReadStream(filename), function (err, metadata) {
 	  if (err) {
 	  	metadata['artist'][0] = "Unknown";
-	  	metadata['title'] = filename.substr(filename.lastIndexOf('/') + 1);
+	  	metadata['title'] = filename.substr(filename.lastIndexOf('/') + 1, filename.lastIndexOf('.') - filename.lastIndexOf('/') - 1);
 	  }
-	  var dir = "./music/" + metadata['artist'][0]
+	  metadata['artist'][0] = metadata['artist'][0].replace("#", " "); metadata['artist'][0] = metadata['artist'][0].replace("%", " "); metadata['artist'][0] = metadata['artist'][0].replace("{", " "); metadata['artist'][0] = metadata['artist'][0].replace("}", " "); metadata['artist'][0] = metadata['artist'][0].replace("\\", " "); metadata['artist'][0] = metadata['artist'][0].replace("<", " "); metadata['artist'][0] = metadata['artist'][0].replace(">", " "); metadata['artist'][0] = metadata['artist'][0].replace("*", " "); metadata['artist'][0] = metadata['artist'][0].replace("?", " "); metadata['artist'][0] = metadata['artist'][0].replace("/", " "); metadata['artist'][0] = metadata['artist'][0].replace("$", " "); metadata['artist'][0] = metadata['artist'][0].replace("!", " "); metadata['artist'][0] = metadata['artist'][0].replace("'", " "); metadata['artist'][0] = metadata['artist'][0].replace("\"", " "); metadata['artist'][0] = metadata['artist'][0].replace(":", " "); metadata['artist'][0] = metadata['artist'][0].replace("@", " ");
+	  var dir = "./music/" + metadata['artist'][0];
 	  var fs = require('fs');
 	  var file = metadata['title'];
-	  file = file.replace("#", " "); file = file.replace("%", " "); file = file.replace("&", " "); file = file.replace("{", " "); file = file.replace("}", " "); file = file.replace("\\", " "); file = file.replace("<", " "); file = file.replace(">", " "); file = file.replace("*", " "); file = file.replace("?", " "); file = file.replace("/", " "); file = file.replace("$", " "); file = file.replace("!", " "); file = file.replace("'", " "); file = file.replace("\"", " "); file = file.replace(":", " "); file = file.replace("@", " ");
+	  file = file.replace("#", " "); file = file.replace("%", " "); file = file.replace("{", " "); file = file.replace("}", " "); file = file.replace("\\", " "); file = file.replace("<", " "); file = file.replace(">", " "); file = file.replace("*", " "); file = file.replace("?", " "); file = file.replace("/", " "); file = file.replace("$", " "); file = file.replace("!", " "); file = file.replace("'", " "); file = file.replace("\"", " "); file = file.replace(":", " "); file = file.replace("@", " ");
 		if (!fs.existsSync(dir)){
 		    fs.mkdirSync(dir);
 		}
 	  var ext = filename.substr(filename.lastIndexOf('.') + 1);
 	  dir += "/" + file + "." + ext;
+	  //Finally, copy file to local directory
 		fs.createReadStream(filename).pipe(fs.createWriteStream(dir));
+		//Now add file to db - critical db info should be Title Artist Path for now
+		var db_object = {
+			title: file,
+			artist: metadata['artist'][0],
+			path: dir
+		}	
+		db.count({path: dir}, function(err, count){
+			if(count == 0){
+				db.insert(db_object, function (err, newDoc) {   
+					if(err){
+						console.log(err);
+					}
+					//todo - check if path exists, if it does delete and then insert
+					// Callback is optional
+				  // newDoc is the newly inserted document, including its _id
+				  // newDoc has no key called notToBeSaved since its value was undefined
+				});
+			}
+			else{
+				//TODO - remove duplicate path and then add.
+			}
+		});
+		
 	});
 }
 

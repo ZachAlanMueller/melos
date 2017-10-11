@@ -4,14 +4,13 @@ var dialog = remote.dialog;
 var Mousetrap = require('mousetrap');
 
 Mousetrap.bind("mod+o", openFiles);
+Mousetrap.bind("mod+q", toggleRightSidebar);
 
 
+function toggleRightSidebar(){
+	$('#toggleRightSidebar').click();
+}
 
 function openFiles(){
 	console.log('still opening file');
-	dialog.showOpenDialog({filters: [{ name: 'Music', extensions: ['m4a', 'mp3', 'spx']}], properties: ['openFile', 'multiSelections']}, function (fileNames) {
-
-	}); 
 }
-
-// openFiles();
