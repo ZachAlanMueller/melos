@@ -133,6 +133,7 @@ function addSong(filename){ //@TODO check for no metadata found
 	  if (err) {
 	  	metadata['artist'][0] = "Unknown";
 	  	metadata['title'] = filename.substr(filename.lastIndexOf('/') + 1, filename.lastIndexOf('.') - filename.lastIndexOf('/') - 1);
+	  	metadata['duration'] = 0;
 	  }
 	  metadata['artist'][0] = metadata['artist'][0].replace("#", " "); metadata['artist'][0] = metadata['artist'][0].replace("%", " "); metadata['artist'][0] = metadata['artist'][0].replace("{", " "); metadata['artist'][0] = metadata['artist'][0].replace("}", " "); metadata['artist'][0] = metadata['artist'][0].replace("\\", " "); metadata['artist'][0] = metadata['artist'][0].replace("<", " "); metadata['artist'][0] = metadata['artist'][0].replace(">", " "); metadata['artist'][0] = metadata['artist'][0].replace("*", " "); metadata['artist'][0] = metadata['artist'][0].replace("?", " "); metadata['artist'][0] = metadata['artist'][0].replace("/", " "); metadata['artist'][0] = metadata['artist'][0].replace("$", " "); metadata['artist'][0] = metadata['artist'][0].replace("!", " "); metadata['artist'][0] = metadata['artist'][0].replace("'", " "); metadata['artist'][0] = metadata['artist'][0].replace("\"", " "); metadata['artist'][0] = metadata['artist'][0].replace(":", " "); metadata['artist'][0] = metadata['artist'][0].replace("@", " ");
 	  var dir = "./music/" + metadata['artist'][0];
@@ -150,26 +151,54 @@ function addSong(filename){ //@TODO check for no metadata found
 		var db_object = {
 			title: file,
 			artist: metadata['artist'][0],
+			duration: metadata['duration'],
 			path: dir
 		}	
+
+
+
 		db.count({path: dir}, function(err, count){
 			if(count == 0){
 				db.insert(db_object, function (err, newDoc) {   
 					if(err){
 						console.log(err);
 					}
-					//todo - check if path exists, if it does delete and then insert
-					// Callback is optional
-				  // newDoc is the newly inserted document, including its _id
-				  // newDoc has no key called notToBeSaved since its value was undefined
+
 				});
 			}
 			else{
-				//TODO - remove duplicate path and then add.
+				db.remove({ path: dir }, {}, function (err, numRemoved) {
+				  if(err){
+				  	console.log(err);
+				  }
+				  //console.log(numRemoved);
+				});
+				db.insert(db_object, function (err, newDoc) {
+					if(err){
+						console.log(err);
+					}
+
+				});
 			}
 		});
 		
 	});
 }
+
+
+function progressWindow(){
+	const progWin = new electron.BrowserWindow({
+		width: 600,
+		height: 400,
+		frame: false
+	});
+	progWin.show();
+}
+
+
+
+
+
+
 
 
