@@ -14,9 +14,8 @@ function loadSongs(){
 				rowColor = 'even';
 			}
 
-			var newPath = docs[i]['path'].slice(0,2) + "../" + docs[i]['path'].slice(2); // Path from the html folder, instead of from the projects root directory
 			var newRow = "\
-						<tr role=\"row\" class=\"" + rowColor + "\" ondblclick=\"playSong('"+newPath+"')\"> \
+						<tr role=\"row\" class=\"" + rowColor + "\" ondblclick=\"playSong('"+docs[i]['path']+"')\"> \
               <td class=\"sorting_1 title\">"+ docs[i]['title'] +"</td>\
               <td class=\"artist\">"+ docs[i]['artist'] +"</td> \
               <td class=\"duration\">"+ docs[i]['duration'] +"</td> \

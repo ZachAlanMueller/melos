@@ -8,7 +8,7 @@ const fs = require("fs"); //filesystem
 var mm = require('musicmetadata'); //musicmetadata
 var Datastore = require('nedb')
   , db = new Datastore({ filename: './db/songs', autoload: true });
-
+var path = require('path');
 
 
 // Adds debug features like hotkeys for triggering dev tools and reload
@@ -136,15 +136,13 @@ function addSong(filename){ //@TODO check for no metadata found
 	  	metadata['duration'] = 0;
 	  }
 	  metadata['artist'][0] = metadata['artist'][0].replace("#", " "); metadata['artist'][0] = metadata['artist'][0].replace("%", " "); metadata['artist'][0] = metadata['artist'][0].replace("{", " "); metadata['artist'][0] = metadata['artist'][0].replace("}", " "); metadata['artist'][0] = metadata['artist'][0].replace("\\", " "); metadata['artist'][0] = metadata['artist'][0].replace("<", " "); metadata['artist'][0] = metadata['artist'][0].replace(">", " "); metadata['artist'][0] = metadata['artist'][0].replace("*", " "); metadata['artist'][0] = metadata['artist'][0].replace("?", " "); metadata['artist'][0] = metadata['artist'][0].replace("/", " "); metadata['artist'][0] = metadata['artist'][0].replace("$", " "); metadata['artist'][0] = metadata['artist'][0].replace("!", " "); metadata['artist'][0] = metadata['artist'][0].replace("'", " "); metadata['artist'][0] = metadata['artist'][0].replace("\"", " "); metadata['artist'][0] = metadata['artist'][0].replace(":", " "); metadata['artist'][0] = metadata['artist'][0].replace("@", " ");
-	  var dir = "./music/" + metadata['artist'][0];
+	  var dir = path.resolve(filename);
 	  var fs = require('fs');
 	  var file = metadata['title'];
-	  file = file.replace("#", " "); file = file.replace("%", " "); file = file.replace("{", " "); file = file.replace("}", " "); file = file.replace("\\", " "); file = file.replace("<", " "); file = file.replace(">", " "); file = file.replace("*", " "); file = file.replace("?", " "); file = file.replace("/", " "); file = file.replace("$", " "); file = file.replace("!", " "); file = file.replace("'", " "); file = file.replace("\"", " "); file = file.replace(":", " "); file = file.replace("@", " ");
+	  file = file.replace("#", " "); file = file.replace("%", " "); file = file.replace("{", " "); file = file.replace("}", " "); file = file.replace("\\", " "); file = file.replace("<", " "); file = file.replace(">", " "); file = file.replace("*", " "); file = file.replace("?", " "); file = file.replace("/", " "); file = file.replace("$", " "); file = file.replace("!", " "); file = file.replace("\"", " "); file = file.replace(":", " "); file = file.replace("@", " ");
 		if (!fs.existsSync(dir)){
 		    fs.mkdirSync(dir);
 		}
-	  var ext = filename.substr(filename.lastIndexOf('.') + 1);
-	  dir += "/" + file + "." + ext;
 	  //Finally, copy file to local directory
 		fs.createReadStream(filename).pipe(fs.createWriteStream(dir));
 		//Now add file to db - critical db info should be Title Artist Path for now
