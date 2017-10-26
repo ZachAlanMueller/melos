@@ -17,6 +17,12 @@ require('electron-debug')();
 // Prevent window being garbage collected
 let mainWindow;
 
+let progWin = new BrowserWindow({
+	width: 800,
+	height: 600,
+	frame: false
+});
+
 function onClosed() {
 	// Dereference the window
 	// For multiple windows store them in an array
@@ -184,14 +190,7 @@ function addSong(filename){ //@TODO check for no metadata found
 }
 
 
-function progressWindow(){
-	const progWin = new electron.BrowserWindow({
-		width: 600,
-		height: 400,
-		frame: false
-	});
-	progWin.show();
-}
+
 
 
 

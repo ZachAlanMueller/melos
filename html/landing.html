@@ -21,6 +21,13 @@
     .rangeslider__fill {
       background-color: #BABABA;
     }
+    .song-instance {
+      margin-top: 5px;
+    }
+    .dropdown-menu{
+      right: 0;
+      left: inherit;
+    }
   </style>
 </head>
 
@@ -107,24 +114,17 @@
     <div class="content-wrapper">
       <div class="box">
         <div class="box-header">
-          <h3 class="box-title">Music Library</h3> 
+          <h1>Music Library</h1> 
         </div>
         <!-- /.box-header -->
         <div class="box-body">
           <div id="example1_wrapper" class="dataTables_wrapper form-inline dt-bootstrap">
             <div class="row">
               <div class="col-sm-12">
-                <table id="library" class="table table-bordered table-hover">
-                  <thead>
-                    <tr role="row">
-                      <th>Title</th>
-                      <th>Artist</th>
-                      <th>Duration</th>
-                    </tr>
-                  </thead>
-                  <tbody id="songs">
+                <table id="library" class="table table-bordered table-hover" style="margin-bottom: 60px;">
+                  <div id="songs">
                     <!-- Library content here -->
-                  </tbody>
+                  </div>
                 </table>
               </div>
             </div>
@@ -449,6 +449,8 @@
         $('#queueFavicon').addClass('fa-angle-left');
       }
     }
+
+    
   </script>
 </body>
 
