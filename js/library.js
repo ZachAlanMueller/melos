@@ -19,7 +19,7 @@ function loadSongs(){
 			var songInsert = "<div class='row song-instance'>";
 			songInsert += " <div class='col-sm-1'> </div>";
 			songInsert += " <div class='col-sm-4'>";
-			songInsert += " <i class='fa fa-play-circle clickable' aria-hidden='true' style='vertical-align: middle; display: inline; color: #222d32;' onClick=\"playSong('"+docs[i]['path']+"')\"></i>";
+			songInsert += " <i class='fa fa-play-circle clickable' aria-hidden='true' style='vertical-align: middle; display: inline; color: #222d32; font-size: 1.5em;' onClick=\"playSong('"+docs[i]['path']+"')\"></i>";
       songInsert += " &nbsp;&nbsp;<div class='songTitle' style='display: inline;'>" + docs[i]['title'] + "</div>";
       songInsert += " </div>";//songTitle column div
 
@@ -28,7 +28,7 @@ function loadSongs(){
       songInsert += " </div>";//songArtist column div
 
       songInsert += " <div class='col-sm-2'>";
-			songInsert += " <div class='songDuration' style='display: inline;'>" + docs[i]['duration'] + "</div>";
+			songInsert += " <div class='songDuration' style='display: inline;'>" + durationToMMSS(docs[i]['duration']) + "</div>";
       songInsert += " </div>";//songDuration column div
 
       songInsert += " <div class='col-sm-1 btn-group'>";
@@ -64,7 +64,17 @@ function loadSongs(){
 //   </ul>
 // </div>
 
-
+function durationToMMSS(seconds){
+	var returnTime = "";
+	returnTime += Math.floor(seconds/60);
+	returnTime += ":";
+	var returnSeconds = (seconds%60);
+	if(returnSeconds < 10){
+		returnSeconds = '0'+returnSeconds;
+	}
+	returnTime+=returnSeconds;
+	return returnTime;
+}
 
 
 

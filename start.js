@@ -4,6 +4,7 @@ const {dialog} = require('electron')
 const app = electron.app;
 const Menu = electron.Menu; //menu bar
 var Mousetrap = require('mousetrap'); //keybindings
+var {ipcMain} = electron;
 const fs = require("fs"); //filesystem
 var mm = require('musicmetadata'); //musicmetadata
 var Datastore = require('nedb')
@@ -17,11 +18,7 @@ require('electron-debug')();
 // Prevent window being garbage collected
 let mainWindow;
 
-let progWin = new BrowserWindow({
-	width: 800,
-	height: 600,
-	frame: false
-});
+let progWin;
 
 function onClosed() {
 	// Dereference the window
@@ -45,6 +42,17 @@ function createMainWindow() {
 	return win;
 }
 
+function createProgWindow(){
+	const progWin = new electron.BrowserWindow({
+		width: 600,
+		height: 200,
+		frame: false
+	});
+	progWin.loadURL(`file://${__dirname}/html/progress.html`);
+	progWin.openDevTools();
+	progWin.setAlwaysOnTop(true);
+	return progWin;
+}
 
 app.on('ready', () => {
 	createMenuBar();
@@ -91,17 +99,17 @@ function createMenuBar(){
             label: 'Add New Song',
             click: () => {
               dialog.showOpenDialog({filters: [{ name: 'Music', extensions: ['m4a', 'mp3', 'spx', 'wav']}], properties: ['openFile', 'multiSelections']}, function (fileNames) {
-              	for(var i = 0; i < fileNames.length; i++){
-              		addSong(fileNames[i]);
-              	}
+              	progWin = createProgWindow();
+              	setTimeout(function(){progWin.webContents.send('files', {files: fileNames});}, 1000);
 							});
             }
           }, { 
           	label: 'Add Folder',
             click: () => {
-              dialog.showOpenDialog({properties: ['openDirectory', 'multiSelections']}, function (folderNames) {
-              	console.log(folderNames);
-              	loadFilesFromFolder(folderNames[0]);
+              dialog.showOpenDialog({properties: ['openDirectory']}, function (folderNames) {
+              	progWin = createProgWindow();
+              	setTimeout(function(){progWin.webContents.send('files', {files: folderNames});}, 1000);
+              	
 							});
             }
           }, {
@@ -119,75 +127,82 @@ function createMenuBar(){
     Menu.setApplicationMenu(menu);
 }
 
-function loadFilesFromFolder(folderName){
-	var files = fs.readdirSync(folderName);
-	for(var i = 0; i < files.length; i++){
-		if(fs.lstatSync(folderName + "/" + files[i]).isFile()) {
-			var ext = files[i].substr(files[i].lastIndexOf('.') + 1);
-			if(ext == "m4a" || ext == "mp3" || ext == "spx" || ext == "wav"){
-				addSong(folderName + "/" + files[i]);
-			}
-		}
-		if(fs.lstatSync(folderName + "/" + files[i]).isDirectory()){
-			loadFilesFromFolder(folderName + "/" + files[i]);
-		}
+ipcMain.on('async', (event, arg) => {
+	console.log(arg);
+	if(arg == 'upload complete'){
+		progWin.close();
 	}
-}
+})
 
-function addSong(filename){ //@TODO check for no metadata found
-	var parser = mm(fs.createReadStream(filename), function (err, metadata) {
-	  if (err) {
-	  	metadata['artist'][0] = "Unknown";
-	  	metadata['title'] = filename.substr(filename.lastIndexOf('/') + 1, filename.lastIndexOf('.') - filename.lastIndexOf('/') - 1);
-	  	metadata['duration'] = 0;
-	  }
-	  metadata['artist'][0] = metadata['artist'][0].replace("#", " "); metadata['artist'][0] = metadata['artist'][0].replace("%", " "); metadata['artist'][0] = metadata['artist'][0].replace("{", " "); metadata['artist'][0] = metadata['artist'][0].replace("}", " "); metadata['artist'][0] = metadata['artist'][0].replace("\\", " "); metadata['artist'][0] = metadata['artist'][0].replace("<", " "); metadata['artist'][0] = metadata['artist'][0].replace(">", " "); metadata['artist'][0] = metadata['artist'][0].replace("*", " "); metadata['artist'][0] = metadata['artist'][0].replace("?", " "); metadata['artist'][0] = metadata['artist'][0].replace("/", " "); metadata['artist'][0] = metadata['artist'][0].replace("$", " "); metadata['artist'][0] = metadata['artist'][0].replace("!", " "); metadata['artist'][0] = metadata['artist'][0].replace("'", " "); metadata['artist'][0] = metadata['artist'][0].replace("\"", " "); metadata['artist'][0] = metadata['artist'][0].replace(":", " "); metadata['artist'][0] = metadata['artist'][0].replace("@", " ");
-	  var dir = path.resolve(filename);
-	  var fs = require('fs');
-	  var file = metadata['title'];
-	  file = file.replace("#", " "); file = file.replace("%", " "); file = file.replace("{", " "); file = file.replace("}", " "); file = file.replace("\\", " "); file = file.replace("<", " "); file = file.replace(">", " "); file = file.replace("*", " "); file = file.replace("?", " "); file = file.replace("/", " "); file = file.replace("$", " "); file = file.replace("!", " "); file = file.replace("\"", " "); file = file.replace(":", " "); file = file.replace("@", " ");
-		if (!fs.existsSync(dir)){
-		    fs.mkdirSync(dir);
-		}
-	  //Finally, copy file to local directory
-		fs.createReadStream(filename).pipe(fs.createWriteStream(dir));
-		//Now add file to db - critical db info should be Title Artist Path for now
-		var db_object = {
-			title: file,
-			artist: metadata['artist'][0],
-			duration: metadata['duration'],
-			path: dir
-		}	
+// function loadFilesFromFolder(folderName){
+// 	var files = fs.readdirSync(folderName);
+// 	for(var i = 0; i < files.length; i++){
+// 		if(fs.lstatSync(folderName + "/" + files[i]).isFile()) {
+// 			var ext = files[i].substr(files[i].lastIndexOf('.') + 1);
+// 			if(ext == "m4a" || ext == "mp3" || ext == "spx" || ext == "wav"){
+// 				addSong(folderName + "/" + files[i]);
+// 			}
+// 		}
+// 		if(fs.lstatSync(folderName + "/" + files[i]).isDirectory()){
+// 			loadFilesFromFolder(folderName + "/" + files[i]);
+// 		}
+// 	}
+// }
+
+// function addSong(filename){ //@TODO check for no metadata found
+// 	var parser = mm(fs.createReadStream(filename), function (err, metadata) {
+// 	  if (err) {
+// 	  	metadata['artist'][0] = "Unknown";
+// 	  	metadata['title'] = filename.substr(filename.lastIndexOf('/') + 1, filename.lastIndexOf('.') - filename.lastIndexOf('/') - 1);
+// 	  	metadata['duration'] = 0;
+// 	  }
+// 	  metadata['artist'][0] = metadata['artist'][0].replace("#", " "); metadata['artist'][0] = metadata['artist'][0].replace("%", " "); metadata['artist'][0] = metadata['artist'][0].replace("{", " "); metadata['artist'][0] = metadata['artist'][0].replace("}", " "); metadata['artist'][0] = metadata['artist'][0].replace("\\", " "); metadata['artist'][0] = metadata['artist'][0].replace("<", " "); metadata['artist'][0] = metadata['artist'][0].replace(">", " "); metadata['artist'][0] = metadata['artist'][0].replace("*", " "); metadata['artist'][0] = metadata['artist'][0].replace("?", " "); metadata['artist'][0] = metadata['artist'][0].replace("/", " "); metadata['artist'][0] = metadata['artist'][0].replace("$", " "); metadata['artist'][0] = metadata['artist'][0].replace("!", " "); metadata['artist'][0] = metadata['artist'][0].replace("'", " "); metadata['artist'][0] = metadata['artist'][0].replace("\"", " "); metadata['artist'][0] = metadata['artist'][0].replace(":", " "); metadata['artist'][0] = metadata['artist'][0].replace("@", " ");
+// 	  var dir = path.resolve(filename);
+// 	  var fs = require('fs');
+// 	  var file = metadata['title'];
+// 	  file = file.replace("#", " "); file = file.replace("%", " "); file = file.replace("{", " "); file = file.replace("}", " "); file = file.replace("\\", " "); file = file.replace("<", " "); file = file.replace(">", " "); file = file.replace("*", " "); file = file.replace("?", " "); file = file.replace("/", " "); file = file.replace("$", " "); file = file.replace("!", " "); file = file.replace("\"", " "); file = file.replace(":", " "); file = file.replace("@", " ");
+// 		if (!fs.existsSync(dir)){
+// 		    fs.mkdirSync(dir);
+// 		}
+// 	  //Finally, copy file to local directory
+// 		fs.createReadStream(filename).pipe(fs.createWriteStream(dir));
+// 		//Now add file to db - critical db info should be Title Artist Path for now
+// 		var db_object = {
+// 			title: file,
+// 			artist: metadata['artist'][0],
+// 			duration: metadata['duration'],
+// 			path: dir
+// 		}	
 
 
 
-		db.count({path: dir}, function(err, count){
-			if(count == 0){
-				db.insert(db_object, function (err, newDoc) {   
-					if(err){
-						console.log(err);
-					}
+// 		db.count({path: dir}, function(err, count){
+// 			if(count == 0){
+// 				db.insert(db_object, function (err, newDoc) {   
+// 					if(err){
+// 						console.log(err);
+// 					}
 
-				});
-			}
-			else{
-				db.remove({ path: dir }, {}, function (err, numRemoved) {
-				  if(err){
-				  	console.log(err);
-				  }
-				  //console.log(numRemoved);
-				});
-				db.insert(db_object, function (err, newDoc) {
-					if(err){
-						console.log(err);
-					}
+// 				});
+// 			}
+// 			else{
+// 				db.remove({ path: dir }, {}, function (err, numRemoved) {
+// 				  if(err){
+// 				  	console.log(err);
+// 				  }
+// 				  //console.log(numRemoved);
+// 				});
+// 				db.insert(db_object, function (err, newDoc) {
+// 					if(err){
+// 						console.log(err);
+// 					}
 
-				});
-			}
-		});
+// 				});
+// 			}
+// 		});
 		
-	});
-}
+// 	});
+// }
 
 
 

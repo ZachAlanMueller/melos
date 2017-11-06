@@ -1,0 +1,217 @@
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>AdminLTE 2 | Dashboard</title>
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+  <link rel="stylesheet" href="./../bower_components/bootstrap/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./../bower_components/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="./../bower_components/Ionicons/css/ionicons.min.css">
+  <link rel="stylesheet" href="./../bower_components/jvectormap/jquery-jvectormap.css">
+  <link rel="stylesheet" href="./../dist/css/AdminLTE.min.css">
+  <link rel="stylesheet" href="./../dist/css/skins/_all-skins.min.css">
+  <link rel="stylesheet" href="./../css/rangeslider.css">
+  
+  <style type="text/css">
+    .clickable {
+      cursor: pointer;
+    }
+    .rangeslider__fill {
+      background-color: #BABABA;
+    }
+    .song-instance {
+      margin-top: 5px;
+    }
+    .dropdown-menu{
+      right: 0;
+      left: inherit;
+    }
+  </style>
+</head>
+
+<body>
+Hello
+
+<audio id="audio"></audio>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js" onload="window.$ = window.jQuery = module.exports;"></script>
+  <!-- Bootstrap 3.3.7 -->
+  <script src="./../bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+  <!-- FastClick -->
+  <script src="./../bower_components/fastclick/lib/fastclick.js"></script>
+  <!-- AdminLTE App -->
+  <script src="./../dist/js/adminlte.min.js"></script>
+  <!-- Sparkline -->
+  <script src="./../bower_components/jquery-sparkline/dist/jquery.sparkline.min.js"></script>
+  <!-- jvectormap -->
+  <script src="./../plugins/jvectormap/jquery-jvectormap-1.2.2.min.js"></script>
+  <script src="./../plugins/jvectormap/jquery-jvectormap-world-mill-en.js"></script>
+  <!-- SlimScroll -->
+  <script src="./../bower_components/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+  <!-- ChartJS -->
+  <script src="./../bower_components/Chart.js/Chart.js"></script>
+  <script src="./../node_modules/howler/dist/howler.js"></script>
+  <script src="./../js/dynatable.js"></script>
+  <script src="./../js/rangeslider.js"></script>
+
+  <!-- Custom JS Files -->
+  <script src="./../js/library.js"></script>
+  <script src="./../js/musicPlayer.js"></script>
+  <script src="./../js/shortcuts.js"></script>
+  <script>
+  	const fs = require('fs-extra') //filesystem
+  	var mm = require('musicmetadata');
+  	const util = require('util');
+  	var {ipcRenderer, remote} = require('electron');
+  	var asyncs = 0;
+		var path = require('path');
+  	require('electron').ipcRenderer.on('files' , function(event , data){
+  		//console.log(data.files);
+  		checkArray(data.files);
+  	});
+  	function checkArray(files){
+  		if(fs.lstatSync(files[0]).isFile()){
+  			for(i = 0; i < files.length; i++){
+  				addSong(files[i]);
+  			}
+  		}
+  		if(fs.lstatSync(files[0]).isDirectory()){
+  			for(i = 0; i < files.length; i++){
+  				addSongsFromDir(files[i]);
+  			}
+  		}
+  	}
+
+  	function addSong(filename){
+  		asyncs++;
+  		var metadata;
+			var parser = mm(fs.createReadStream(filename), function (err, metadata) {
+			  if (err){
+			  	console.log(err);
+			  	asyncs--;
+			  }
+			  if(metadata['artist'][0] == ""){ //If Artist is not found in metadata, make it Unknown
+			  	metadata['artist'][0] = "Unknown";
+			  }
+			  if(metadata['title'] == ""){ //If Title is not found in metadata, make it the filename minus extension and full path
+			  	metadata['title'] = filename.substring(filename.lastIndexOf("/") + 1, filename.lastIndexOf("."));
+			  }
+			  getDuration(filename, function(duration){
+			  	metadata['duration'] = duration;
+
+			  	insertDB(metadata, filename);
+			  });
+			});
+		}
+		//addSong('/Users/zaedonn/Music/Pandora/2cellos/2cellos - Use Somebody.m4a');
+		//addSong('/Users/zaedonn/Music/Pandora/Bastille/Bad Blood - Pompeii.m4a');
+		addSongsFromDir('/Users/zaedonn/Music/Pandora');
+
+		//---------------------------------
+		function addSongsFromDir(dir){
+			var files = fs.readdirSync(dir);
+			for(var i = 0; i < files.length; i++){
+				//console.log(dir + "/" + files[i] + " : " + fs.lstatSync(dir + "/" + files[i]).isDirectory());
+				if(fs.lstatSync(dir + "/" + files[i]).isDirectory()){
+					addSongsFromDir(dir + "/" + files[i]);
+				}
+				else{
+					//console.log(dir + "/" + files[i] + " : " + acceptedFileType(dir + "/" + files[i]));
+					if(acceptedFileType(dir + "/" + files[i])){
+						addSong(dir + "/" + files[i]);
+					}
+				}
+			}
+		}
+		//---------------------------------
+		function acceptedFileType(file){
+			var extension = file.substring(file.lastIndexOf('.')+1);
+			//console.log(extension);
+			if(extension == "mp3" || extension == "m4a" || extension == "wav" || extension == "ogg" || extension == "m4b"){
+				return true;
+			}
+			return false;
+		}
+		//---------------------------------
+		function getDuration(filename, cb){
+			var audio = new Audio();
+			$(audio).prop("src", filename);
+			$(audio).on("canplaythrough", function(e){
+			    var seconds = e.currentTarget.duration;
+			    
+			    URL.revokeObjectURL(filename);
+			    cb(seconds);
+			});
+		}
+		//---------------------------------
+		function insertDB(songObj, filename){
+			//songObj is metadata, filename is filepath BEFORE being moved to local directory
+			db.count({ artist: songObj['artist'][0], title: songObj['title']}, function (err, count) {
+			  if(count == 0){
+			  	//proceed with inserting
+			  }
+			  else{
+			  	//@TODO remove old row and then move forward with inserting new row.
+			  	db.find({ artist: songObj['artist'][0], title: songObj['title']}, function (err, docs) {
+			  		for(i = 0; i < docs.length; i++){
+			  			removeSongFromLocal(docs[i]['path']);
+			  		}
+					  
+					});
+
+			  	db.remove({ artist: songObj['artist'][0], title: songObj['title']}, {multi: true}, function (err, numRemoved) {
+			  		//Removed old entry
+					});
+			  }
+			  db.insert({title: songObj['title'], artist: songObj['artist'][0], duration: Math.round(songObj['duration']), path: ''}, function(err, newDoc){
+			  	var extension = filename.substring(filename.lastIndexOf('.'));
+			  	var tmpPath = "./music/" + newDoc['_id'] + extension;
+			  	db.update({title: songObj['title'], artist: songObj['artist'][0], duration: Math.round(songObj['duration']), path: ''}, { $set: {path: path.resolve(tmpPath)}}, {}, function (err, numReplaced) {
+					  if(err) {
+					  	throw err;
+					  	asyncs--;
+					  }
+
+					  //song is now in the DB with title,artist,path,id,duration. Now move the file.
+					  moveSongToLocal(filename, tmpPath);
+					});
+			  });
+
+			});
+			//---------------------------------
+			function moveSongToLocal(oldFilePath, newFilePath){
+				fs.copySync(oldFilePath, newFilePath);
+				asyncs--;
+			}
+
+			function removeSongFromLocal(delPath){
+				fs.unlinkSync(delPath);
+			}
+
+
+		}
+
+
+
+		var check = function(){
+			console.log('checking... asyncs at ' + asyncs);
+			if(asyncs<=0 ){
+				console.log("DONE");
+				ipcRenderer.send('async', 'upload complete');
+			}
+			else{
+				setTimeout(check, 1000);
+			}
+		}
+
+		setTimeout(check, 2000);
+  </script>
+
+
+<script>
+	
+
+
+</script>
+</body>
+
+
